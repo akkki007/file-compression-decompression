@@ -1,0 +1,16 @@
+# openbounty per-repo configuration. See https://openbounty.dev/docs/config
+agent_policy:
+  allowed_tier: "verified"
+  sensitive_paths:
+    - "**/auth/**"
+    - "**/payment*/**"
+    - "**/.env*"
+    - "**/secrets/**"
+    - "**/*.key"
+    - "**/*.pem"
+  max_files_changed: 40
+  require_model_disclosure: true
+workflow_rules:
+  default_revision_count: 2
+  claim_timeout_days: 7
+  min_bounty_amount: 2500
