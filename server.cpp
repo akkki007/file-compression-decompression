@@ -156,6 +156,8 @@ int main() {
             auto result = huffmanCompress(inputData);
             response["compressedData"] = base64Encode(result.compressedData);
             response["compressedSize"] = (int)result.compressedData.size();
+            response["isSmaller"] = result.compressedData.size() < inputData.size();
+            response["bytesSaved"] = (int)inputData.size() - (int)result.compressedData.size();
             response["compressionRatio"] = inputData.empty() ? 0.0 :
                 (double)result.compressedData.size() / inputData.size() * 100.0;
             response["steps"] = std::move(result.steps);
@@ -163,6 +165,8 @@ int main() {
             auto result = lzwCompress(inputData);
             response["compressedData"] = base64Encode(result.compressedData);
             response["compressedSize"] = (int)result.compressedData.size();
+            response["isSmaller"] = result.compressedData.size() < inputData.size();
+            response["bytesSaved"] = (int)inputData.size() - (int)result.compressedData.size();
             response["compressionRatio"] = inputData.empty() ? 0.0 :
                 (double)result.compressedData.size() / inputData.size() * 100.0;
             response["steps"] = std::move(result.steps);
@@ -243,4 +247,3 @@ int main() {
     app.port(18080).multithreaded().run();
     return 0;
 }
-

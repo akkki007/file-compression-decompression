@@ -8,9 +8,9 @@ const API_URL = 'http://localhost:18080';
 
 function formatBytes(bytes) {
   if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  const k = 1000;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
@@ -98,17 +98,36 @@ function App() {
 
   const handleDownload = () => {
     if (!result) return;
+    const originalSize = result.originalSize || result.steps?.originalSize || file?.size || 0;
+    const compressedSize = result.compressedSize || 0;
+    if (mode === 'compress' && compressedSize >= originalSize) {
+      setError('This file did not get smaller, so there is no smaller compressed file to download.');
+      return;
+    }
     const b64 = result[mode === 'compress' ? 'compressedData' : 'decompressedData'];
     if (!b64) return;
     const binary = atob(b64);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    const ext = mode === 'compress' ? (algorithm === 'huffman' ? '.huffz' : '.lzwz') : '.decompressed';
-    const blob = new Blob([bytes], { type: 'application/octet-stream' });
+    const srcName = file?.name || 'file';
+    let downloadName;
+    if (mode === 'compress') {
+      downloadName = srcName;
+    } else {
+      // Strip the algorithm extension to recover the original extension.
+      // e.g. "report.pptx.huffz" -> "report.pptx"
+      const lower = srcName.toLowerCase();
+      if (lower.endsWith('.huffz') || lower.endsWith('.lzwz')) {
+        downloadName = srcName.slice(0, srcName.lastIndexOf('.'));
+      } else {
+        downloadName = srcName + '.decompressed';
+      }
+    }
+    const blob = new Blob([bytes], { type: file?.type || 'application/octet-stream' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = (file?.name || 'file') + ext;
+    a.download = downloadName;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -119,6 +138,11 @@ function App() {
     if (result) return 'done';
     return 'idle';
   }, [loading, mode, result]);
+
+  const resultOriginalSize = result?.originalSize || result?.steps?.originalSize || 0;
+  const resultCompressedSize = result?.compressedSize || 0;
+  const compressionWasUseful = mode !== 'compress' || !result ||
+    (result.isSmaller ?? resultCompressedSize < resultOriginalSize);
 
   return (
     <div className="app">
@@ -156,7 +180,9 @@ function App() {
                 <div className="file-info">
                   <div>
                     <div className="file-info-name">{file.name}</div>
-                    <div className="file-info-size">{formatBytes(file.size)}</div>
+                    <div className="file-info-size" title={`${file.size.toLocaleString()} bytes`}>
+                      {formatBytes(file.size)}
+                    </div>
                   </div>
                   <button className="file-remove" onClick={(e) => { e.stopPropagation(); setFile(null); setResult(null); }}>
                     &#x2715;
@@ -214,7 +240,7 @@ function App() {
                     <div className="stat-label">Original</div>
                   </div>
                   <div className="stat-item">
-                    <div className="stat-value green">
+                    <div className={`stat-value ${mode === 'compress' && !compressionWasUseful ? 'orange' : 'green'}`}>
                       {formatBytes(mode === 'compress' ? (result.compressedSize || 0) : (result.decompressedSize || 0))}
                     </div>
                     <div className="stat-label">{mode === 'compress' ? 'Compressed' : 'Output'}</div>
@@ -228,8 +254,20 @@ function App() {
                     </div>
                   )}
                 </div>
-                <button className="btn btn-download" onClick={handleDownload} style={{ width: '100%' }}>
-                  Download {mode === 'compress' ? 'compressed' : 'decompressed'} file
+                {mode === 'compress' && !compressionWasUseful && (
+                  <div className="warning-box">
+                    This file is already compressed. {algorithm === 'huffman' ? 'Huffman' : 'LZW'} made it larger, so no smaller file was created.
+                  </div>
+                )}
+                <button
+                  className="btn btn-download"
+                  onClick={handleDownload}
+                  disabled={mode === 'compress' && !compressionWasUseful}
+                  style={{ width: '100%' }}
+                >
+                  {mode === 'compress' && !compressionWasUseful
+                    ? 'No smaller file available'
+                    : `Download ${mode === 'compress' ? 'smaller' : 'decompressed'} file`}
                 </button>
               </div>
             </div>

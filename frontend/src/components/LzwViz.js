@@ -63,7 +63,7 @@ export default function LzwViz({ steps, mode }) {
           <div className="viz-section-body">
             <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
               <div className="stat-item">
-                <div className="stat-value accent">{steps.bitSize || '-'}</div>
+                <div className="stat-value accent">{steps.bitSize ? `9→${steps.bitSize}` : '-'}</div>
                 <div className="stat-label">Bit Size</div>
               </div>
               <div className="stat-item">
@@ -137,13 +137,13 @@ export default function LzwViz({ steps, mode }) {
                     <span className="lzw-step-num">#{step.step}</span>
                     <span className="lzw-step-seq">"{fmt(step.sequence)}"</span>
                     <span className="lzw-step-arrow">&rarr;</span>
-                    <span className="lzw-step-code">code: {step.code}</span>
+                    <span className="lzw-step-code">code: {step.code} <span style={{fontSize: 10, color: 'var(--text-muted)'}}>({step.bitSize}b)</span></span>
                     <span className="lzw-step-new">+ dict[{step.newCode}] = "{fmt(step.newEntry)}"</span>
                   </div>
                 )) : decodeSteps.map((step, i) => (
                   <div key={i} className="lzw-step">
                     <span className="lzw-step-num">#{step.step}</span>
-                    <span className="lzw-step-code">code: {step.code}</span>
+                    <span className="lzw-step-code">code: {step.code} <span style={{fontSize: 10, color: 'var(--text-muted)'}}>({step.bitSize}b)</span></span>
                     <span className="lzw-step-arrow">&rarr;</span>
                     <span className="lzw-step-seq">"{fmt(step.output)}"</span>
                     <span className="lzw-step-new">+ dict[{step.newDictIndex}] = "{fmt(step.newDictEntry)}"</span>
